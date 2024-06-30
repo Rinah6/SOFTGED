@@ -399,19 +399,19 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 
-Migrations
+# Migrations
 
-store
-tmp
-tmp_signatures
-signatures
+# store
+# tmp
+# tmp_signatures
+# signatures
 
-appsettings.json
-launchSettings.json
-apiConfig.js
-API.csproj
-Web.csproj
-Bibliotheque.csproj
-Web.zip
+# appsettings.json
+# launchSettings.json
+# apiConfig.js
+# API.csproj
+# Web.csproj
+# Bibliotheque.csproj
+# Web.zip
 
-private_key.xml
+# private_key.xml

@@ -45,14 +45,6 @@ $('#without-nif-and-stat').on('change', (e) => {
             <div class="input-group mb-3">
                 <input type="text" placeholder="STAT" id="stat" class="form-control" />
             </div>
-
-            <div class="input-group mb-3">
-                <input type="text" placeholder="MAIL" id="mail" class="form-control" />
-            </div>
-
-            <div class="input-group mb-3">
-                <input type="text" placeholder="CONTACT" id="contact" class="form-control" />
-            </div>
         `);
     }
 });

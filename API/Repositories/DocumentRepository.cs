@@ -139,8 +139,7 @@ namespace API.Repositories
                         AND d.DeletionDate IS NULL
                         AND us.DeletionDate IS NULL
                         AND (
-                            d.CanBeAccessedByAnyone = 1 
-                            OR (
+                            (
                                 SELECT TOP 1 uda.CreationDate
                                 FROM UsersDocumentsAccesses AS uda
                                 WHERE uda.DocumentId = d.Id
@@ -156,9 +155,8 @@ namespace API.Repositories
                         FROM Documents AS d
                         INNER JOIN DocumentsSenders AS ds ON d.SenderId = ds.Id
                         WHERE (
-                            d.Status = @archivedDocumentStatus
-                            AND d.CanBeAccessedByAnyone = 1 
-                            OR (
+                            d.Status = @documentStatus
+                            AND (
                                 SELECT TOP 1 uda.CreationDate
                                 FROM UsersDocumentsAccesses AS uda
                                 WHERE uda.DocumentId = d.Id
@@ -215,6 +213,15 @@ namespace API.Repositories
                 INNER JOIN DocumentsSenders AS ds ON s.Id = ds.Id
                 WHERE u.Id = @userId 
                 AND ds.Type = 1
+                AND (
+                    (
+                        SELECT TOP 1 uda.CreationDate
+                        FROM SuppliersDocumentsSendings AS uda
+                        WHERE uda.Id = dr.DocumentId
+                        AND uda.InitiatorId = dr.userId
+                        ORDER BY uda.CreationDate DESC
+                    ) IS NULL
+                )
                 ORDER BY d.CreationDate DESC;
             ", conn);
 
@@ -567,7 +574,16 @@ namespace API.Repositories
                 INNER JOIN Users AS u ON dr.UserId = u.Id
                 INNER JOIN DocumentsSenders AS ds ON s.Id = ds.Id
                 WHERE u.Id = @userId 
-                AND ds.Type = 1;
+                AND ds.Type = 1
+                AND (
+                    (
+                        SELECT TOP 1 uda.CreationDate
+                        FROM SuppliersDocumentsSendings AS uda
+                        WHERE uda.Id = dr.DocumentId
+                        AND uda.InitiatorId = dr.userId
+                        ORDER BY uda.CreationDate DESC
+                    ) IS NULL
+                );
             ", conn);
 
             cmd.Parameters.AddWithValue("@userId", userId);
@@ -777,8 +793,7 @@ namespace API.Repositories
                     AND d.DeletionDate IS NULL
                     AND us.DeletionDate IS NULL
                     AND (
-                        d.CanBeAccessedByAnyone = 1 
-                        OR (
+                        (
                             SELECT TOP 1 uda.CreationDate
                             FROM UsersDocumentsAccesses AS uda
                             WHERE uda.DocumentId = d.Id
@@ -795,8 +810,7 @@ namespace API.Repositories
                     INNER JOIN DocumentsSenders AS ds ON d.SenderId = ds.Id
                     WHERE (
                         d.Status = @archivedDocumentStatus
-                        AND d.CanBeAccessedByAnyone = 1 
-                        OR (
+                        AND (
                             SELECT TOP 1 uda.CreationDate
                             FROM UsersDocumentsAccesses AS uda
                             WHERE uda.DocumentId = d.Id

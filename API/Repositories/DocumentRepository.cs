@@ -156,7 +156,8 @@ namespace API.Repositories
                         FROM Documents AS d
                         INNER JOIN DocumentsSenders AS ds ON d.SenderId = ds.Id
                         WHERE (
-                            d.CanBeAccessedByAnyone = 1 
+                            d.Status = @archivedDocumentStatus
+                            AND d.CanBeAccessedByAnyone = 1 
                             OR (
                                 SELECT TOP 1 uda.CreationDate
                                 FROM UsersDocumentsAccesses AS uda
@@ -513,7 +514,8 @@ namespace API.Repositories
                     FROM Documents AS d
                     INNER JOIN DocumentsSenders AS ds ON d.SenderId = ds.Id
                     WHERE (
-                        d.CanBeAccessedByAnyone = 1 
+                        d.Status = @archivedDocumentStatus
+                        AND d.CanBeAccessedByAnyone = 1 
                         OR (
                             SELECT TOP 1 uda.CreationDate
                             FROM UsersDocumentsAccesses AS uda
@@ -896,7 +898,8 @@ namespace API.Repositories
                     FROM Documents AS d
                     INNER JOIN DocumentsSenders AS ds ON d.SenderId = ds.Id
                     WHERE (
-                        d.CanBeAccessedByAnyone = 1 
+                        d.Status = @archivedDocumentStatus
+                        AND d.CanBeAccessedByAnyone = 1 
                         OR (
                             SELECT TOP 1 uda.CreationDate
                             FROM UsersDocumentsAccesses AS uda

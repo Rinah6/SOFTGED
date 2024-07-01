@@ -43,15 +43,18 @@
 
                     <div id="nif-and-stat-container">
                         <div class="input-group mb-3">
-                            <input type="text" placeholder="NIF" id="nif" class="form-control" />
+                            <input type="text" placeholder="NIF" id="nif" class="form-control" maxlength="10" />
                         </div>
 
                         <div class="input-group mb-3">
-                            <input type="text" placeholder="STAT" id="stat" class="form-control" />
+                            <input type="text" placeholder="STAT" id="stat" class="form-control" maxlength="17" />
                         </div>
                     </div>
 
                     <div>
+                        <div class="input-group mb-3">
+                            <input type="text" placeholder="N° CIN" id="cin" class="form-control" />
+                        </div>
                         <div class="input-group mb-3">
                             <input type="mail" placeholder="MAIL" id="mail" class="form-control" />
                         </div>
@@ -62,7 +65,7 @@
                     </div>
 
                     <div class="input-group mb-3">
-                        <input type="text" placeholder="Nom" id="name" class="form-control" />
+                        <input type="text" placeholder="Nom / Raison sociale" id="name" class="form-control" />
                     </div>
 
                     <button type="submit" id="suppliers-form-button" class="btn bg-gradient-olive btn-block text-white">Se connecter</button>

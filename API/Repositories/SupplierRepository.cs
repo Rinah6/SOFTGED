@@ -42,7 +42,7 @@ namespace API.Repositories
             return null;
         }
 
-        public async Task<Guid?> GetSupplieIdWithoutNIFAndSTAT(string name, Guid projectId)
+        public async Task<Guid?> GetSupplieIdWithoutNIFAndSTAT(string name, Guid projectId, string cin)
         {
             using var conn = new SqlConnection(_connectionString);
             await conn.OpenAsync();
@@ -52,10 +52,12 @@ namespace API.Repositories
                 FROM Suppliers
                 WHERE Name = @name
                 AND ProjectId = @projectId
+                AND CIN = @cin
                 AND DeletionDate IS NULL;
             ", conn);
 
             cmd.Parameters.AddWithValue("@name", name);
+            cmd.Parameters.AddWithValue("@cin", cin);
             cmd.Parameters.AddWithValue("@projectId", projectId);
 
             using var reader = await cmd.ExecuteReaderAsync();
@@ -105,8 +107,8 @@ namespace API.Repositories
                 INSERT INTO DocumentsSenders (Id, Type)
 		        VALUES (@Id, 1);
 
-                INSERT INTO Suppliers (Id, NIF, STAT, MAIL, CONTACT, Name, ProjectId)
-                VALUES (@Id, @nif, @stat, @mail, @contact, @name, @projectId);
+                INSERT INTO Suppliers (Id, NIF, STAT, MAIL, CONTACT, CIN, Name, ProjectId)
+                VALUES (@Id, @nif, @stat, @mail, @contact, @cin, @name, @projectId);
             ", conn);
 
             var Id = Guid.NewGuid();
@@ -116,6 +118,7 @@ namespace API.Repositories
             cmd.Parameters.AddWithValue("@stat", supplier.STAT == null ? DBNull.Value : supplier.STAT);
             cmd.Parameters.AddWithValue("@mail", supplier.MAIL == null ? DBNull.Value : supplier.MAIL);
             cmd.Parameters.AddWithValue("@contact", supplier.CONTACT == null ? DBNull.Value : supplier.CONTACT);
+            cmd.Parameters.AddWithValue("@cin", supplier.CIN == null ? DBNull.Value : supplier.CIN);
             cmd.Parameters.AddWithValue("@name", supplier.Name);
             cmd.Parameters.AddWithValue("@projectId", supplier.ProjectId);
 

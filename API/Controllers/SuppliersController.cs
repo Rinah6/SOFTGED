@@ -53,7 +53,7 @@ namespace API.Controllers
 
             if (supplier.NIF == null || supplier.STAT == null)
             {
-                supplierId = await _supplierRepository.GetSupplieIdWithoutNIFAndSTAT(supplier.Name, supplier.ProjectId);
+                supplierId = await _supplierRepository.GetSupplieIdWithoutNIFAndSTAT(supplier.Name, supplier.ProjectId, supplier.CIN);
             }
             else
             {
@@ -102,7 +102,7 @@ namespace API.Controllers
 
             if (supplier.NIF == null || supplier.STAT == null)
             {
-                supplierId = await _supplierRepository.GetSupplieIdWithoutNIFAndSTAT(supplier.Name, supplier.ProjectId);
+                supplierId = await _supplierRepository.GetSupplieIdWithoutNIFAndSTAT(supplier.Name, supplier.ProjectId, supplier.CIN);
             }
             else
             {

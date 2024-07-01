@@ -149,6 +149,16 @@ namespace API.Repositories
                             ) IS NOT NULL
                         )
 
+                        OR (
+                            (
+                                SELECT TOP 1 uda.CreationDate
+                                FROM SuppliersDocumentsSendings AS uda
+                                WHERE uda.Id = d.Id
+                                AND uda.InitiatorId = @userId
+                                ORDER BY uda.CreationDate DESC
+                            ) IS NOT NULL
+                        )
+
                         UNION
 
                         SELECT d.Id, d.Title, d.CreationDate, ds.Type
@@ -164,6 +174,16 @@ namespace API.Repositories
                                 AND uda.DeletionDate IS NULL
                                 ORDER BY uda.CreationDate DESC
                             ) IS NOT NULL
+
+                            OR (
+                                (
+                                    SELECT TOP 1 uda.CreationDate
+                                    FROM SuppliersDocumentsSendings AS uda
+                                    WHERE uda.Id = d.Id
+                                    AND uda.InitiatorId = @userId
+                                    ORDER BY uda.CreationDate DESC
+                                ) IS NOT NULL
+                            )
                         )
                     ) AS query 
                     ORDER BY query.CreationDate DESC;
@@ -803,6 +823,16 @@ namespace API.Repositories
                         ) IS NOT NULL
                     )
 
+                    OR (
+                            (
+                                SELECT TOP 1 uda.CreationDate
+                                FROM SuppliersDocumentsSendings AS uda
+                                WHERE uda.Id = d.Id
+                                AND uda.InitiatorId = @userId
+                                ORDER BY uda.CreationDate DESC
+                            ) IS NOT NULL
+                        )
+
                     UNION
 
                     SELECT d.Id, d.Title, d.CreationDate, ds.Type
@@ -818,6 +848,16 @@ namespace API.Repositories
                             AND uda.DeletionDate IS NULL
                             ORDER BY uda.CreationDate DESC
                         ) IS NOT NULL
+
+                        OR (
+                            (
+                                SELECT TOP 1 uda.CreationDate
+                                FROM SuppliersDocumentsSendings AS uda
+                                WHERE uda.Id = d.Id
+                                AND uda.InitiatorId = @userId
+                                ORDER BY uda.CreationDate DESC
+                            ) IS NOT NULL
+                        )
                     )
                 ) AS query;
             ", conn);

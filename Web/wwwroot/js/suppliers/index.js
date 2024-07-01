@@ -7,6 +7,7 @@ const stat = $('#stat');
 const name = $('#name');
 const mail = $('#mail');
 const contact = $('#contact');
+const cin = $('#cin');
 
 let isASignupOperation = false;
 
@@ -21,8 +22,6 @@ $(document).ready(async () => {
         await axios.get(apiUrl + `api/suppliers/check_projects?Id=${projectId}`);
 
         $('#without-nif-and-stat').prop('checked', false);
-
-        /*$('#nif-and-stat-container').html(``);*/
 
     } catch (error) {
         $('body').html(`
@@ -98,10 +97,18 @@ $('#suppliers-form').on('submit', async (e) => {
     }
 
     if ($('#without-nif-and-stat').prop('checked') === true) {
+        if (cin.val() === '') {
+            alert('Le N° CIN est obligatoire si sans NIF et STAT!');
+
+            return;
+        }
+
         payload = {
             name: name.val(),
+            cin: cin.val(),
             projectId
         };
+
     } else {
         if (nifInput.val() === '') {
             alert('Le NIF est obligatoire!');
@@ -145,6 +152,7 @@ $('#suppliers-form').on('submit', async (e) => {
             contact: contact.val(),
             mail: mail.val(),
             name: name.val(),
+            cin: cin.val(),
             projectId
         };
     }
@@ -159,7 +167,7 @@ $('#suppliers-form').on('submit', async (e) => {
     
             window.location.href = webUrl + `suppliers/${projectId}`;
         } catch (error) {
-            alert('NIF ou STAT ou nom de fournisseur déjà existant(s) pour ce projet!');
+            alert('NIF ou STAT ou nom du fournisseur déjà existant(s) pour ce projet!');
         } finally {
             loader.addClass('display-none');
         }

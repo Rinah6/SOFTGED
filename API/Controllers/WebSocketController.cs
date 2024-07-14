@@ -1,4 +1,4 @@
-using System.Net.WebSockets;
+﻿using System.Net.WebSockets;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
@@ -99,7 +99,7 @@ namespace Server.Controllers
 
                 await Task.Run(() =>
                 {
-                    Thread.Sleep(10 * 1000);
+                    Thread.Sleep(60 * 1000);
                 });
 
                 if (!s_isConnected && !s_isAlreadyLoggedOut)

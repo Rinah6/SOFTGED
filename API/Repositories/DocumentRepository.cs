@@ -3,6 +3,7 @@ using API.Context;
 using API.Data;
 using Microsoft.Data.SqlClient;
 using API.Data.Entities;
+using API.Model;
 
 namespace API.Repositories
 {
@@ -10,9 +11,11 @@ namespace API.Repositories
     {
         private readonly string _connectionString;
         private readonly SoftGED_DBContext _db;
+        private readonly ProjectRepository _projectRepository;
 
-        public DocumentRepository(IConfiguration configuration, SoftGED_DBContext db)
+        public DocumentRepository(IConfiguration configuration, SoftGED_DBContext db, ProjectRepository projectRepository)
         {
+            _projectRepository = projectRepository;
             _connectionString = configuration.GetConnectionString("SoftGED_DBContext")!;
             _db = db;
         }
@@ -83,12 +86,18 @@ namespace API.Repositories
             return false;
         }
 
-        public async Task<List<Document>> GetDocuments(Guid userId, DocumentStatus documentStatus)
+        public async Task<List<API.Data.Entities.Document>> GetDocuments(Guid userId, DocumentStatus documentStatus)
         {
             using var conn = new SqlConnection(_connectionString);
             await conn.OpenAsync();
 
-            var sqlCommand = @"
+            var res = new List<API.Data.Entities.Document>();
+
+            var projectId = await _projectRepository.GetProjectByUserId(userId);
+
+            if (projectId != null)
+            {
+                var sqlCommand = @"
                 SELECT * FROM (
                     SELECT d.Id, d.Title, d.CreationDate, ds.Type
                     FROM Documents AS d
@@ -106,67 +115,65 @@ namespace API.Repositories
                     INNER JOIN UsersSteps AS us ON dst.Id = us.DocumentStepId
                     INNER JOIN USERS AS u ON us.UserId = u.Id
                     WHERE us.UserId = @userId
+                    AND us.ProjectId = @projectId
                     AND d.Status = @documentStatus
                     AND us.ProcessingDate IS NOT NULL
                     AND d.DeletionDate IS NULL
                     AND us.DeletionDate IS NULL
-                ) AS query 
+                ) AS query
                 ORDER BY query.CreationDate DESC;
             ";
 
-            if (documentStatus == DocumentStatus.Archived)
-            {
-                sqlCommand = @"
-                    SELECT * FROM (
-                        SELECT d.Id, d.Title, d.CreationDate, ds.Type
-                        FROM Documents AS d
-                        INNER JOIN DocumentsSenders AS ds ON d.SenderId = ds.Id
-                        WHERE d.SenderId = @userId
-                        AND d.Status = @documentStatus
-                        AND d.DeletionDate IS NULL
+                if (documentStatus == DocumentStatus.Archived)
+                {
+                    sqlCommand = @"
+                SELECT * FROM (
+                    SELECT d.Id, d.Title, d.CreationDate, ds.Type
+                    FROM Documents AS d
+                    INNER JOIN DocumentsSenders AS ds ON d.SenderId = ds.Id
+	                INNER JOIN USERS AS u ON ds.Id = u.Id
+                    WHERE d.SenderId = @userId
+	                AND u.ProjectId = @projectId
+                    AND d.Status = 3
+                    AND d.DeletionDate IS NULL
 
-                        UNION
+                    UNION
 
-                        SELECT d.Id, d.Title, d.CreationDate, ds.Type
-                        FROM Documents AS d
-                        INNER JOIN DocumentsSenders AS ds ON d.SenderId = ds.Id
-                        INNER JOIN DocumentSteps AS dst ON d.Id = dst.DocumentId
-                        INNER JOIN UsersSteps AS us ON dst.Id = us.DocumentStepId
-                        INNER JOIN USERS AS u ON us.UserId = u.Id
-                        WHERE us.UserId = @userId
-                        AND d.Status = @documentStatus
-                        AND us.ProcessingDate IS NOT NULL
-                        AND d.DeletionDate IS NULL
-                        AND us.DeletionDate IS NULL
-                        AND (
-                            (
-                                SELECT TOP 1 uda.CreationDate
-                                FROM UsersDocumentsAccesses AS uda
-                                WHERE uda.DocumentId = d.Id
-                                AND uda.UserId = @userId
-                                AND uda.DeletionDate IS NULL
-                                ORDER BY uda.CreationDate DESC
-                            ) IS NOT NULL
-                        )
-
+                    SELECT d.Id, d.Title, d.CreationDate, ds.Type
+                    FROM Documents AS d
+                    INNER JOIN DocumentsSenders AS ds ON d.SenderId = ds.Id
+                    INNER JOIN DocumentSteps AS dst ON d.Id = dst.DocumentId
+                    INNER JOIN UsersSteps AS us ON dst.Id = us.DocumentStepId
+                    INNER JOIN USERS AS u ON us.UserId = u.Id
+                    WHERE us.UserId = @userId
+                    AND d.Status = 3
+                    AND us.ProcessingDate IS NOT NULL
+                    AND d.DeletionDate IS NULL
+                    AND us.DeletionDate IS NULL
+                    AND (
+                        d.CanBeAccessedByAnyone = 1
                         OR (
-                            (
-                                SELECT TOP 1 uda.CreationDate
-                                FROM SuppliersDocumentsSendings AS uda
-                                WHERE uda.Id = d.Id
-                                AND uda.InitiatorId = @userId
-                                ORDER BY uda.CreationDate DESC
-                            ) IS NOT NULL
-                        )
+                            SELECT TOP 1 uda.CreationDate
+                            FROM UsersDocumentsAccesses AS uda
+                            WHERE uda.DocumentId = d.Id
+                            AND uda.UserId = @userId
+                            AND uda.DeletionDate IS NULL
+                            ORDER BY uda.CreationDate DESC
+                        ) IS NOT NULL
+                    )
 
-                        UNION
+                    UNION
 
-                        SELECT d.Id, d.Title, d.CreationDate, ds.Type
-                        FROM Documents AS d
-                        INNER JOIN DocumentsSenders AS ds ON d.SenderId = ds.Id
-                        WHERE (
-                            d.Status = @documentStatus
-                            AND (
+                    SELECT d.Id, d.Title, d.CreationDate, ds.Type
+                    FROM Documents AS d
+                    INNER JOIN DocumentsSenders AS ds ON d.SenderId = ds.Id
+	                INNER JOIN USERS AS u ON ds.Id = u.Id
+                    WHERE (
+                        d.Status = 3
+		                AND u.ProjectId = @projectId
+                        AND (
+                            d.CanBeAccessedByAnyone = 1 
+                            OR (
                                 SELECT TOP 1 uda.CreationDate
                                 FROM UsersDocumentsAccesses AS uda
                                 WHERE uda.DocumentId = d.Id
@@ -174,44 +181,35 @@ namespace API.Repositories
                                 AND uda.DeletionDate IS NULL
                                 ORDER BY uda.CreationDate DESC
                             ) IS NOT NULL
-
-                            OR (
-                                (
-                                    SELECT TOP 1 uda.CreationDate
-                                    FROM SuppliersDocumentsSendings AS uda
-                                    WHERE uda.Id = d.Id
-                                    AND uda.InitiatorId = @userId
-                                    ORDER BY uda.CreationDate DESC
-                                ) IS NOT NULL
-                            )
                         )
-                    ) AS query 
+                    )
+                ) AS query 
                     ORDER BY query.CreationDate DESC;
                 ";
-            }
+                }
 
-            using var cmd = new SqlCommand(sqlCommand, conn);
+                using var cmd = new SqlCommand(sqlCommand, conn);
 
-            cmd.Parameters.AddWithValue("@userId", userId);
-            cmd.Parameters.AddWithValue("@documentStatus", documentStatus);
+                cmd.Parameters.AddWithValue("@userId", userId);
+                cmd.Parameters.AddWithValue("@documentStatus", documentStatus);
+                cmd.Parameters.AddWithValue("@projectId", projectId?.Id);
 
-            using var reader = await cmd.ExecuteReaderAsync();
+                using var reader = await cmd.ExecuteReaderAsync();
 
-            var res = new List<Document>();
-
-            while (await reader.ReadAsync())
-            {
-                var documentId = Guid.Parse(reader["Id"].ToString()!);
-
-                res.Add(new Document
+                while (await reader.ReadAsync())
                 {
-                    Id = documentId,
-                    Title = reader["Title"].ToString()!,
-                    CreationDate = Convert.ToDateTime(reader["CreationDate"]),
-                    Sender = await GetDocumentSenderName(documentId, (SenderType)reader["Type"]),
-                    Role = DocumentRole.Reader,
-                    IsTheCurrentStepTurn = false,
-                });
+                    var documentId = Guid.Parse(reader["Id"].ToString()!);
+
+                    res.Add(new API.Data.Entities.Document
+                    {
+                        Id = documentId,
+                        Title = reader["Title"].ToString()!,
+                        CreationDate = Convert.ToDateTime(reader["CreationDate"]),
+                        Sender = await GetDocumentSenderName(documentId, (SenderType)reader["Type"]),
+                        Role = DocumentRole.Reader,
+                        IsTheCurrentStepTurn = false,
+                    });
+                }
             }
 
             return res;
@@ -233,15 +231,7 @@ namespace API.Repositories
                 INNER JOIN DocumentsSenders AS ds ON s.Id = ds.Id
                 WHERE u.Id = @userId 
                 AND ds.Type = 1
-                AND (
-                    (
-                        SELECT TOP 1 uda.CreationDate
-                        FROM SuppliersDocumentsSendings AS uda
-                        WHERE uda.Id = dr.DocumentId
-                        AND uda.InitiatorId = dr.userId
-                        ORDER BY uda.CreationDate DESC
-                    ) IS NULL
-                )
+                AND d.Status = 0
                 ORDER BY d.CreationDate DESC;
             ", conn);
 
@@ -358,12 +348,12 @@ namespace API.Repositories
             return "";
         }
 
-        public async Task<List<Document>> GetReceivedDocuments(Guid currentUserId)
+        public async Task<List<API.Data.Entities.Document>> GetReceivedDocuments(Guid currentUserId)
         {
-            var res = new List<Document>();
-
             using var conn = new SqlConnection(_connectionString);
             await conn.OpenAsync();
+
+            var res = new List<API.Data.Entities.Document>();
 
             using var cmd = new SqlCommand(@"
                 SELECT d.Id, d.Title, d.CreationDate, ds.Type, dst.Role
@@ -408,7 +398,7 @@ namespace API.Repositories
             {
                 var documentId = Guid.Parse(reader["Id"].ToString()!);
 
-                res.Add(new Document
+                res.Add(new API.Data.Entities.Document
                 {
                     Id = documentId,
                     Title = reader["Title"].ToString()!,
@@ -422,9 +412,9 @@ namespace API.Repositories
             return res;
         }
 
-        public async Task<List<Document>> GetSendedDocuments(Guid userId, string currentUserUsername)
+        public async Task<List<API.Data.Entities.Document>> GetSendedDocuments(Guid userId, string currentUserUsername)
         {
-            var res = new List<Document>();
+            var res = new List<API.Data.Entities.Document>();
 
             using var conn = new SqlConnection(_connectionString);
             await conn.OpenAsync();
@@ -450,7 +440,7 @@ namespace API.Repositories
             {
                 var documentId = Guid.Parse(reader["Id"].ToString()!);
 
-                res.Add(new Document
+                res.Add(new API.Data.Entities.Document
                 {
                     Id = documentId,
                     Title = reader["Title"].ToString()!,
@@ -464,19 +454,27 @@ namespace API.Repositories
             return res;
         }
 
-        public async Task<List<Document>> GetCommonDocuments(Guid userId)
+        public async Task<List<API.Data.Entities.Document>> GetCommonDocuments(Guid userId)
         {
             using var conn = new SqlConnection(_connectionString);
             await conn.OpenAsync();
 
-            using var cmd = new SqlCommand(@"
+            var res = new List<API.Data.Entities.Document>();
+
+            var projectId = await _projectRepository.GetProjectByUserId(userId);
+
+            if (projectId != null)
+            {
+                using var cmd = new SqlCommand(@"
                 SELECT * FROM (
                     SELECT d.Id, d.Title, d.CreationDate, ds.Type
                     FROM Documents AS d
                     INNER JOIN DocumentsSenders AS ds ON d.SenderId = ds.Id
                     INNER JOIN USERS AS u ON d.SenderId = u.Id
                     WHERE d.SenderId = @userId
-                    AND d.Status = @archivedDocumentStatus
+	                AND u.ProjectId = @projectId
+                    AND d.Status = 3
+    
                     AND u.ProjectId = (
                         SELECT Projects.Id FROM Projects 
                         INNER JOIN Users ON Projects.Id = Users.ProjectId
@@ -492,7 +490,7 @@ namespace API.Repositories
                     INNER JOIN UsersSteps AS us ON dst.Id = us.DocumentStepId
                     INNER JOIN USERS AS u ON us.UserId = u.Id
                     WHERE us.UserId = @userId
-                    AND d.Status = @archivedDocumentStatus
+                    AND d.Status = 3
                     AND u.ProjectId = (
                         SELECT Projects.Id FROM Projects 
                         INNER JOIN Users ON Projects.Id = Users.ProjectId
@@ -515,8 +513,10 @@ namespace API.Repositories
                     SELECT d.Id, d.Title, d.CreationDate, ds.Type
                     FROM Documents AS d
                     INNER JOIN DocumentsSenders AS ds ON d.SenderId = ds.Id
+	                INNER JOIN USERS AS u ON ds.Id = u.Id
                     INNER JOIN Suppliers AS s ON ds.Id = s.Id
-                    WHERE d.Status = @archivedDocumentStatus
+                    WHERE d.Status = 3
+	                AND u.ProjectId = @projectId
                     AND d.DeletionDate IS NULL
                     AND s.ProjectId = (
                         SELECT Projects.Id FROM Projects 
@@ -540,42 +540,46 @@ namespace API.Repositories
                     SELECT d.Id, d.Title, d.CreationDate, ds.Type
                     FROM Documents AS d
                     INNER JOIN DocumentsSenders AS ds ON d.SenderId = ds.Id
+	                INNER JOIN USERS AS u ON ds.Id = u.Id
                     WHERE (
-                        d.Status = @archivedDocumentStatus
-                        AND d.CanBeAccessedByAnyone = 1 
-                        OR (
-                            SELECT TOP 1 uda.CreationDate
-                            FROM UsersDocumentsAccesses AS uda
-                            WHERE uda.DocumentId = d.Id
-                            AND uda.UserId = @userId
-                            AND uda.DeletionDate IS NULL
-                            ORDER BY uda.CreationDate DESC
-                        ) IS NOT NULL
+                        d.Status = 3
+		                AND u.ProjectId = @projectId
+                        AND (
+                            d.CanBeAccessedByAnyone = 1 
+                            OR (
+                                SELECT TOP 1 uda.CreationDate
+                                FROM UsersDocumentsAccesses AS uda
+                                WHERE uda.DocumentId = d.Id
+                                AND uda.UserId = @userId
+                                AND uda.DeletionDate IS NULL
+                                ORDER BY uda.CreationDate DESC
+                            ) IS NOT NULL
+                        )
                     )
                 ) AS query 
                 ORDER BY query.CreationDate DESC;
             ", conn);
 
-            cmd.Parameters.AddWithValue("@userId", userId);
-            cmd.Parameters.AddWithValue("@archivedDocumentStatus", DocumentStatus.Archived);
+                cmd.Parameters.AddWithValue("@userId", userId);
+                cmd.Parameters.AddWithValue("@archivedDocumentStatus", DocumentStatus.Archived);
+                cmd.Parameters.AddWithValue("@projectId", projectId?.Id);
 
-            using var reader = await cmd.ExecuteReaderAsync();
+                using var reader = await cmd.ExecuteReaderAsync();
 
-            var res = new List<Document>();
-
-            while (await reader.ReadAsync())
-            {
-                var documentId = Guid.Parse(reader["Id"].ToString()!);
-
-                res.Add(new Document
+                while (await reader.ReadAsync())
                 {
-                    Id = documentId,
-                    Title = reader["Title"].ToString()!,
-                    CreationDate = Convert.ToDateTime(reader["CreationDate"]),
-                    Sender = await GetDocumentSenderName(documentId, (SenderType)reader["Type"]),
-                    Role = DocumentRole.Reader,
-                    IsTheCurrentStepTurn = false
-                });
+                    var documentId = Guid.Parse(reader["Id"].ToString()!);
+
+                    res.Add(new API.Data.Entities.Document
+                    {
+                        Id = documentId,
+                        Title = reader["Title"].ToString()!,
+                        CreationDate = Convert.ToDateTime(reader["CreationDate"]),
+                        Sender = await GetDocumentSenderName(documentId, (SenderType)reader["Type"]),
+                        Role = DocumentRole.Reader,
+                        IsTheCurrentStepTurn = false
+                    });
+                }
             }
 
             return res;
@@ -595,15 +599,7 @@ namespace API.Repositories
                 INNER JOIN DocumentsSenders AS ds ON s.Id = ds.Id
                 WHERE u.Id = @userId 
                 AND ds.Type = 1
-                AND (
-                    (
-                        SELECT TOP 1 uda.CreationDate
-                        FROM SuppliersDocumentsSendings AS uda
-                        WHERE uda.Id = dr.DocumentId
-                        AND uda.InitiatorId = dr.userId
-                        ORDER BY uda.CreationDate DESC
-                    ) IS NULL
-                );
+                AND d.Status = 0;
             ", conn);
 
             cmd.Parameters.AddWithValue("@userId", userId);
@@ -790,12 +786,18 @@ namespace API.Repositories
             using var conn = new SqlConnection(_connectionString);
             await conn.OpenAsync();
 
-            using var cmd = new SqlCommand(@"
+            var projectId = await _projectRepository.GetProjectByUserId(userId);
+
+            if (projectId != null)
+            {
+                using var cmd = new SqlCommand(@"
                 SELECT COUNT(*) AS Total FROM (
                     SELECT d.Id, d.Title, d.CreationDate, ds.Type
                     FROM Documents AS d
                     INNER JOIN DocumentsSenders AS ds ON d.SenderId = ds.Id
+                    INNER JOIN USERS AS u ON ds.Id = u.Id
                     WHERE d.SenderId = @userId
+                    AND u.ProjectId = @projectId
                     AND d.Status = @archivedDocumentStatus
                     AND d.DeletionDate IS NULL
 
@@ -813,7 +815,8 @@ namespace API.Repositories
                     AND d.DeletionDate IS NULL
                     AND us.DeletionDate IS NULL
                     AND (
-                        (
+                        d.CanBeAccessedByAnyone = 1 
+                        OR (
                             SELECT TOP 1 uda.CreationDate
                             FROM UsersDocumentsAccesses AS uda
                             WHERE uda.DocumentId = d.Id
@@ -823,38 +826,23 @@ namespace API.Repositories
                         ) IS NOT NULL
                     )
 
-                    OR (
-                            (
-                                SELECT TOP 1 uda.CreationDate
-                                FROM SuppliersDocumentsSendings AS uda
-                                WHERE uda.Id = d.Id
-                                AND uda.InitiatorId = @userId
-                                ORDER BY uda.CreationDate DESC
-                            ) IS NOT NULL
-                        )
-
                     UNION
 
                     SELECT d.Id, d.Title, d.CreationDate, ds.Type
                     FROM Documents AS d
                     INNER JOIN DocumentsSenders AS ds ON d.SenderId = ds.Id
+                    INNER JOIN USERS AS u ON ds.Id = u.Id
                     WHERE (
                         d.Status = @archivedDocumentStatus
-                        AND (
-                            SELECT TOP 1 uda.CreationDate
-                            FROM UsersDocumentsAccesses AS uda
-                            WHERE uda.DocumentId = d.Id
-                            AND uda.UserId = @userId
-                            AND uda.DeletionDate IS NULL
-                            ORDER BY uda.CreationDate DESC
-                        ) IS NOT NULL
-
-                        OR (
-                            (
+                        AND u.ProjectId = @projectId
+                        AND ( 
+                            d.CanBeAccessedByAnyone = 1 
+                            OR (
                                 SELECT TOP 1 uda.CreationDate
-                                FROM SuppliersDocumentsSendings AS uda
-                                WHERE uda.Id = d.Id
-                                AND uda.InitiatorId = @userId
+                                FROM UsersDocumentsAccesses AS uda
+                                WHERE uda.DocumentId = d.Id
+                                AND uda.UserId = @userId
+                                AND uda.DeletionDate IS NULL
                                 ORDER BY uda.CreationDate DESC
                             ) IS NOT NULL
                         )
@@ -862,14 +850,18 @@ namespace API.Repositories
                 ) AS query;
             ", conn);
 
-            cmd.Parameters.AddWithValue("@userId", userId);
-            cmd.Parameters.AddWithValue("@archivedDocumentStatus", DocumentStatus.Archived);
+                cmd.Parameters.AddWithValue("@userId", userId);
+                cmd.Parameters.AddWithValue("@archivedDocumentStatus", DocumentStatus.Archived);
+                cmd.Parameters.AddWithValue("@projectId", projectId?.Id);
 
-            using var reader = await cmd.ExecuteReaderAsync();
+                using var reader = await cmd.ExecuteReaderAsync();
 
-            if (await reader.ReadAsync())
-            {
-                return (int)reader["Total"];
+                if (await reader.ReadAsync())
+                {
+                    return (int)reader["Total"];
+                }
+
+                return 0;
             }
 
             return 0;
@@ -880,14 +872,20 @@ namespace API.Repositories
             using var conn = new SqlConnection(_connectionString);
             await conn.OpenAsync();
 
-            using var cmd = new SqlCommand(@"
+            var projectId = await _projectRepository.GetProjectByUserId(userId);
+
+            if ( projectId != null )
+            {
+                using var cmd = new SqlCommand(@"
                 SELECT COUNT(*) AS Total FROM (
                     SELECT d.Id, d.Title, d.CreationDate, ds.Type
                     FROM Documents AS d
                     INNER JOIN DocumentsSenders AS ds ON d.SenderId = ds.Id
                     INNER JOIN USERS AS u ON d.SenderId = u.Id
                     WHERE d.SenderId = @userId
-                    AND d.Status = @archivedDocumentStatus
+	                AND u.ProjectId = @projectId
+                    AND d.Status = 3
+    
                     AND u.ProjectId = (
                         SELECT Projects.Id FROM Projects 
                         INNER JOIN Users ON Projects.Id = Users.ProjectId
@@ -903,7 +901,7 @@ namespace API.Repositories
                     INNER JOIN UsersSteps AS us ON dst.Id = us.DocumentStepId
                     INNER JOIN USERS AS u ON us.UserId = u.Id
                     WHERE us.UserId = @userId
-                    AND d.Status = @archivedDocumentStatus
+                    AND d.Status = 3
                     AND u.ProjectId = (
                         SELECT Projects.Id FROM Projects 
                         INNER JOIN Users ON Projects.Id = Users.ProjectId
@@ -926,8 +924,10 @@ namespace API.Repositories
                     SELECT d.Id, d.Title, d.CreationDate, ds.Type
                     FROM Documents AS d
                     INNER JOIN DocumentsSenders AS ds ON d.SenderId = ds.Id
+	                INNER JOIN USERS AS u ON ds.Id = u.Id
                     INNER JOIN Suppliers AS s ON ds.Id = s.Id
-                    WHERE d.Status = @archivedDocumentStatus
+                    WHERE d.Status = 3
+	                AND u.ProjectId = @projectId
                     AND d.DeletionDate IS NULL
                     AND s.ProjectId = (
                         SELECT Projects.Id FROM Projects 
@@ -951,29 +951,37 @@ namespace API.Repositories
                     SELECT d.Id, d.Title, d.CreationDate, ds.Type
                     FROM Documents AS d
                     INNER JOIN DocumentsSenders AS ds ON d.SenderId = ds.Id
+	                INNER JOIN USERS AS u ON ds.Id = u.Id
                     WHERE (
-                        d.Status = @archivedDocumentStatus
-                        AND d.CanBeAccessedByAnyone = 1 
-                        OR (
-                            SELECT TOP 1 uda.CreationDate
-                            FROM UsersDocumentsAccesses AS uda
-                            WHERE uda.DocumentId = d.Id
-                            AND uda.UserId = @userId
-                            AND uda.DeletionDate IS NULL
-                            ORDER BY uda.CreationDate DESC
-                        ) IS NOT NULL
+                        d.Status = 3
+		                AND u.ProjectId = @projectId
+                        AND (
+                            d.CanBeAccessedByAnyone = 1 
+                            OR (
+                                SELECT TOP 1 uda.CreationDate
+                                FROM UsersDocumentsAccesses AS uda
+                                WHERE uda.DocumentId = d.Id
+                                AND uda.UserId = @userId
+                                AND uda.DeletionDate IS NULL
+                                ORDER BY uda.CreationDate DESC
+                            ) IS NOT NULL
+                        )
                     )
                 ) AS query;
             ", conn);
 
-            cmd.Parameters.AddWithValue("@userId", userId);
-            cmd.Parameters.AddWithValue("@archivedDocumentStatus", DocumentStatus.Archived);
+                cmd.Parameters.AddWithValue("@userId", userId);
+                cmd.Parameters.AddWithValue("@archivedDocumentStatus", DocumentStatus.Archived);
+                cmd.Parameters.AddWithValue("@projectId", projectId?.Id);
 
-            using var reader = await cmd.ExecuteReaderAsync();
+                using var reader = await cmd.ExecuteReaderAsync();
 
-            if (await reader.ReadAsync())
-            {
-                return (int)reader["Total"];
+                if (await reader.ReadAsync())
+                {
+                    return (int)reader["Total"];
+                }
+
+                return 0;
             }
 
             return 0;

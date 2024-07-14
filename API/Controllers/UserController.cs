@@ -125,13 +125,14 @@ namespace API.Controllers
         public async Task<ActionResult> Delete(Guid Id)
         {
             var currentUserRole = HttpContext.User.Claims.FirstOrDefault(x => x.Type == "role")!.Value;
+            var currentUserId = Guid.Parse(HttpContext.User.Claims.FirstOrDefault(x => x.Type == "Id")!.Value);
 
             if (Enum.Parse<UserRole>(currentUserRole) != UserRole.Admin && Enum.Parse<UserRole>(currentUserRole) != UserRole.SuperAdmin)
             {
                 return StatusCode(403);
             }
 
-            await _userRepository.Delete(Id);
+            await _userRepository.Delete(Id, currentUserId);
 
             return Ok();
         }

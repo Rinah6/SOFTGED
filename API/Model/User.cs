@@ -16,7 +16,7 @@ namespace API.Model
         public string FirstName { get; set; }
         public string LastName { get; set; }
         public UserRole RoleId { get; set; } = UserRole.User;
-        public Guid CreatedBy { get; set; }
+        public Guid? CreatedBy { get; set; }
 
         public Guid? ProjectId { get; set; }
 

@@ -164,6 +164,7 @@ IF NOT EXISTS (SELECT name FROM sys.tables WHERE name = 'Suppliers')
 			NIF VARCHAR(255),
 			STAT VARCHAR(255),
             MAIL VARCHAR(255),
+            CIN VARCHAR(255),
             CONTACT VARCHAR(255),
 			Name NVARCHAR(255) NOT NULL,
 			ProjectId UNIQUEIDENTIFIER NOT NULL,

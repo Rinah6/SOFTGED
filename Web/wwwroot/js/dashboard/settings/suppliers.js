@@ -23,10 +23,11 @@ async function getSuppliers() {
 
     $.each(data, function (_, user) {
         code += `
-            <tr id="${user.id}">
+            <tr data-type="user-cell" id="${user.id}">
                 <td>${user.name}</td>
                 <td>${user.nif === undefined ? '' : user.nif}</td>
                 <td>${user.stat === undefined ? '' : user.stat}</td>
+                <td>${user.cin === undefined ? '' : user.cin}</td>
                 <td>${user.mail === undefined ? '' : user.mail}</td>
                 <td>${user.contact === undefined ? '' : user.contact}</td>
                 <td>${formatDate(user.creationDate)}</td>

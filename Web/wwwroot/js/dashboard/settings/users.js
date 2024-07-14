@@ -164,6 +164,8 @@ $(`[new-user-modal]`).on('click', async (e) => {
     if (connectedUserRole === 0 || connectedUserRole === 1) {
         $('#modal-title').text(`Insertion d'un nouvel utilisateur`);
 
+        document.getElementById("username").disabled = false;
+
         if (connectedUserRole === 0) {
             $('#roles-container').hide();
         } else {
@@ -199,6 +201,8 @@ $(document).on('click', '[user-update]', async (e) => {
         await getUser(id);
 
         $('#modal-title').text(`Modification d'un utilisateur`);
+
+        document.getElementById("username").disabled = true;
 
         if (connectedUserRole === 0) {
             $('#roles-container').remove();

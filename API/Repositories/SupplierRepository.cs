@@ -199,7 +199,7 @@ namespace API.Repositories
             var res = new List<SupplierDetails>();
 
             using var cmd = new SqlCommand(@"
-                SELECT Id, NIF, STAT, MAIL, CONTACT, Name, CreationDate
+                SELECT Id, NIF, STAT, CIN, MAIL, CONTACT, Name, CreationDate
                 FROM Suppliers
                 WHERE ProjectId = @projectId
                 AND DeletionDate IS NULL;
@@ -215,6 +215,7 @@ namespace API.Repositories
                 var stat = reader["STAT"];
                 var mail = reader["MAIL"];
                 var contact = reader["CONTACT"];
+                var cin = reader["CIN"];
 
                 res.Add(new SupplierDetails
                 {
@@ -223,6 +224,7 @@ namespace API.Repositories
                     STAT = stat is DBNull ? null : stat.ToString(),
                     MAIL = mail is DBNull ? null : mail.ToString(),
                     CONTACT = contact is DBNull ? null : contact.ToString(),
+                    CIN = cin is DBNull ? null : cin.ToString(),
                     Name = reader["Name"].ToString()!,
                     CreationDate = Convert.ToDateTime(reader["CreationDate"])
                 });

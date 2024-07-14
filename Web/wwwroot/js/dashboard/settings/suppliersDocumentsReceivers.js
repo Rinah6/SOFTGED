@@ -26,7 +26,7 @@ async function getDocumentsReceivers() {
 
     $.each(data, function (_, user) {
         code += `
-            <tr id="${user.id}">
+            <tr data-type="user-cell" id="${user.id}">
                 <td>${user.username}</td>
                 <td>${user.lastName}</td>
                 <td>${user.firstName}</td>

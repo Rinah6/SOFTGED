@@ -36,6 +36,20 @@ namespace API.Repositories
 
         public async Task<Model.User?> Get(Guid id)
         {
+            //using var conn = new SqlConnection(_connectionString);
+            //await conn.OpenAsync();
+
+            //using var cmd = new SqlCommand(@"
+            //    SELECT u.Id, u.RoleId, u.Password
+            //    FROM Users AS u
+            //    WHERE u.Username = @username
+            //    AND u.DeletionDate IS NULL;
+            //", conn);
+
+            //cmd.Parameters.AddWithValue("@username", username);
+
+            //using var reader = await cmd.ExecuteReaderAsync();
+
             return await _db.Users.FirstOrDefaultAsync(user => user.Id == id && user.DeletionDate == null);
         }
 
@@ -270,17 +284,18 @@ namespace API.Repositories
             await cmd.ExecuteNonQueryAsync();
         }
 
-        public async Task Delete(Guid userId)
+        public async Task Delete(Guid userId, Guid currentUserId)
         {
             using var conn = new SqlConnection(_connectionString);
             await conn.OpenAsync();
 
             using var cmd = new SqlCommand(@"
-                UPDATE Users SET DeletionDate = GETDATE()
+                UPDATE Users SET DeletionDate = GETDATE(), DeletedBy = @ideleted
                 WHERE Id = @userId;
             ", conn);
 
             cmd.Parameters.AddWithValue("@userId", userId);
+            cmd.Parameters.AddWithValue("@ideleted", currentUserId);
 
             await cmd.ExecuteNonQueryAsync();
         }

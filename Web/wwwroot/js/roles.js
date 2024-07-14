@@ -89,12 +89,14 @@ $(document).ready(async () => {
             `);
         }
 
-        $('#espace_client').append(`
+        if (role !== 0) {
+            $('#espace_client').append(`
             <li class="nav-flat"><hr /></li>
             <li class="nav-header" data-id="w-menu">
                 Paramétrages
             </li>
         `);
+        }
 
         let settings = ``;
 

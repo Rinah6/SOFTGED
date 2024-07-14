@@ -82,7 +82,6 @@ $('#signin-signup-toggler').on('click', () => {
     $('#suppliers-form-button').text('Se connecter');
 
     /*$('#nif-and-stat-container').html(``);*/
-
 });
 
 $('#suppliers-form').on('submit', async (e) => {
@@ -99,6 +98,12 @@ $('#suppliers-form').on('submit', async (e) => {
     if ($('#without-nif-and-stat').prop('checked') === true) {
         if (cin.val() === '') {
             alert('Le N° CIN est obligatoire si sans NIF et STAT!');
+
+            return;
+        }
+
+        if (mail.val() === '') {
+            alert('Le MAIL est obligatoire!');
 
             return;
         }
@@ -128,8 +133,8 @@ $('#suppliers-form').on('submit', async (e) => {
             return;
         }
 
-        if (stat.val().length !== 17) {
-            alert('Le STAT doit être exactement de 17 caractères de longueur!');
+        if (stat.val().length !== 18) {
+            alert('Le STAT doit être exactement de 18 caractères de longueur!');
 
             return;
         }
@@ -140,11 +145,11 @@ $('#suppliers-form').on('submit', async (e) => {
             return;
         }
 
-        if (contact.val() === '') {
-            alert('Le CONTACT est obligatoire!');
+        //if (contact.val() === '') {
+        //    alert('Le CONTACT est obligatoire!');
 
-            return;
-        }
+        //    return;
+        //}
 
         payload = {
             nif: nifInput.val(),
@@ -167,7 +172,7 @@ $('#suppliers-form').on('submit', async (e) => {
     
             window.location.href = webUrl + `suppliers/${projectId}`;
         } catch (error) {
-            alert('NIF ou STAT ou nom du fournisseur déjà existant(s) pour ce projet!');
+            alert('Compte déjà existant!');
         } finally {
             loader.addClass('display-none');
         }

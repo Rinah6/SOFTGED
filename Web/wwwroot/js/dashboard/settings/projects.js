@@ -35,8 +35,10 @@ async function getProjects() {
         code += `
             <tr data-type="project-cell">
                 <td>${v.id}</td>
-                <td>${v.name}</td>
-                <td>${v.storage}</td>
+                <td>${v.name === undefined ? "" : v.name}</td>
+                <td>${v.storage === undefined ? "" : v.storage}</td>
+                <td>${v.servername === undefined ? "" : v.servername}</td>
+                <td>${v.databasename === undefined ? "" : v.databasename}</td>
                 <td><button class="btn btn-primary" show-update-project-modal="${v.id}">Modifer</button></td>
                 <td><button class="btn btn-danger" delete-project="${v.id}">Supprimer</button></td>
             </tr>
@@ -57,6 +59,10 @@ async function getProjectDetails(projectId) {
 
     $("#current-name").val(data.name);
     $("#current-storage").val(data.storage);
+    $("#current-serveur").val(data.servernaame);
+    $("#current-login").val(data.login);
+    $("#current-login").val(data.login);
+    $("#current-password").val(data.password);
     $('#has-access-to-internal-users-handling').prop('checked', data.hasAccessToInternalUsersHandling);
     $('#has-access-to-suppliers-handling').prop('checked', data.hasAccessToSuppliersHandling);
     $('#has-access-to-processing-circuits-handling').prop('checked', data.hasAccessToProcessingCircuitsHandling);
@@ -82,6 +88,26 @@ async function deleteProject(projectId) {
     window.location.reload();
 }
 
+async function getSOAS() {
+    const { data: projects } = await axios.get(apiUrl + `api/soas`, {
+        withCredentials: true
+    });
+
+    let content = `
+        <option value="" selected></option>
+    `;
+
+    for (let i = 0; i < projects.length; i += 1) {
+        content += `
+            <option value="${projects[i].id}">${projects[i].name}</option>
+        `;
+    }
+
+    $('#soas').html(content).select2({
+        dropdownParent: $('#create-project-modal')
+    });
+}
+
 $(document).ready(async () => {
     try {
         loader.removeClass('display-none');
@@ -97,11 +123,26 @@ $(document).ready(async () => {
         }
 
         await getProjects();
+
+        await getSOAS();
+
+        $('#authentication-modes').select2({
+            dropdownParent: $('#add-tom-pro-db-connection-modal'),
+        })
+
     } catch (error) {
         alert(error.message);
     } finally {
         loader.addClass('display-none');
     }
+});
+
+$('#server-name').on('input', () => {
+    $('#connection-btn').show();
+
+    $('#save-db-connection-container').find('#save-db-connection-btn').remove();
+
+    $('#databases-container').html('');
 });
 
 $('#wsearch').on('keyup', function () {
@@ -116,12 +157,48 @@ $('#wsearch').on('keyup', function () {
 
 $(document).on('click', '[create-project]', async() => {
     let name = $('#name').val();
+    let soa = $('#soa').val();
     let storage = $("#storage").val();
+    let serveur = $("#serveur").val();
+    let login = $("#login").val();
+    let password = $("#password").val();
 
     if (name == '') {
         Toast.fire({
             icon: 'error',
             title: "Le nom est obligatoire."
+        });
+
+        return;
+    }
+    if (soa == '') {
+        Toast.fire({
+            icon: 'error',
+            title: "Le SOA est obligatoire."
+        });
+
+        return;
+    }
+    if (serveur == '') {
+        Toast.fire({
+            icon: 'error',
+            title: "Le serveur est obligatoire."
+        });
+
+        return;
+    }
+    if (login == '') {
+        Toast.fire({
+            icon: 'error',
+            title: "Le login (sa) est obligatoire."
+        });
+
+        return;
+    }
+    if (password == '') {
+        Toast.fire({
+            icon: 'error',
+            title: "Le mot de passe (sa) est obligatoire."
         });
 
         return;
@@ -132,7 +209,11 @@ $(document).on('click', '[create-project]', async() => {
 
         await axios.post(apiUrl + `api/projects`, {
             name,
-            storage
+            storage,
+            soa,
+            password,
+            login,
+            serveur,
         }, {
             withCredentials: true
         });
@@ -144,7 +225,7 @@ $(document).on('click', '[create-project]', async() => {
 
         window.location.reload();
     } catch (error) {
-        alert(error.message);
+        alert(error);
     } finally {
         loader.addClass('display-none');
     }
@@ -240,7 +321,7 @@ $(document).on('click', '[delete-project]', async (e) => {
     const header = $(e.target).closest(`[delete-project]`);
     const id = header.attr("delete-project");
 
-    if (confirm('Êtes-vous sûr(e) de supprimer cet utilisateur ?')) {
+    if (confirm('Êtes-vous sûr(e) de supprimer le projet ?')) {
         await deleteProject(id);
     }
 });

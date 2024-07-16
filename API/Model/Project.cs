@@ -8,6 +8,10 @@ namespace API.Model
         public required Guid Id { get; set; }
         public required string Name { get; set; }
         public required string Storage { get; set; }
+        public string? ServerName { get; set; }
+        public string? Login { get; set; }
+        public string? Password { get; set; }
+        public string? DataBaseName { get; set; }
         public bool HasAccessToInternalUsersHandling { get; set; } = false;
         public bool HasAccessToSuppliersHandling { get; set; } = false;
         public bool HasAccessToProcessingCircuitsHandling { get; set; } = false;

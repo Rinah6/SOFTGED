@@ -27,10 +27,17 @@ $(document).ready(async () => {
         } = userStateManager.getUser();
 
         const projectsManagementLink = role === 0 ? `
+            <a href="${webUrl}soas" class="nav-link" id="soas_management">
+                <i class="nav-icon fas fa-id-card-alt"></i>
+                <p>
+                    Gestion des SOA
+                </p>
+            </a>
+
             <a href="${webUrl}projects" class="nav-link" id="projects_management">
                 <i class="nav-icon fas fa-building"></i>
                 <p>
-                    Gestion de projets
+                    Gestion des projets
                 </p>
             </a>
         ` : '';

@@ -2,12 +2,12 @@ import { apiUrl, webUrl } from '../apiConfig.js';
 
 const loader = $('#loader');
 
-const nifInput = $('#nif');
-const stat = $('#stat');
-const name = $('#name');
-const mail = $('#mail');
-const contact = $('#contact');
-const cin = $('#cin');
+let nifInput = $('#nif');
+let stat = $('#stat');
+let name = $('#name');
+let mail = $('#mail');
+let contact = $('#contact');
+let cin = $('#cin');
 
 let isASignupOperation = false;
 
@@ -23,6 +23,10 @@ $(document).ready(async () => {
 
         $('#without-nif-and-stat').prop('checked', false);
 
+        $('#cin-container').html(``);
+        $('#mail-container').html(``);
+        $('#contact-container').html(``);
+
     } catch (error) {
         $('body').html(`
             <h1 style="font-size: 128px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">404</h1>
@@ -35,6 +39,12 @@ $(document).ready(async () => {
 $('#without-nif-and-stat').on('change', (e) => {
     if ($(e.currentTarget).prop('checked') === true) {
         $('#nif-and-stat-container').html(``);
+
+        $('#cin-container').html(`
+            <div class="input-group mb-3">
+                <input type="text" placeholder="N° CIN" id="cin" class="form-control" />
+            </div>
+        `);
     } else {
         $('#nif-and-stat-container').html(`
             <div class="input-group mb-3">
@@ -45,6 +55,8 @@ $('#without-nif-and-stat').on('change', (e) => {
                 <input type="text" placeholder="STAT" id="stat" class="form-control" />
             </div>
         `);
+
+        $('#cin-container').html(``);
     }
 });
 
@@ -56,23 +68,17 @@ $('#signin-signup-toggler').on('click', () => {
         $('#signin-signup-toggler').text('Déja inscrit');
         $('#suppliers-form-button').text("Créer un nouveau compte");
 
-        //$('#nif-and-stat-container').html(`
-        //    <div class="input-group mb-3">
-        //        <input type="text" placeholder="NIF" id="nif" class="form-control" />
-        //    </div>
+        $('#mail-container').html(`
+            <div class="input-group mb-3">
+                <input type="email" placeholder="MAIL" id="mail" class="form-control" />
+            </div>
+        `);
 
-        //    <div class="input-group mb-3">
-        //        <input type="text" placeholder="STAT" id="stat" class="form-control" />
-        //    </div>
-
-        //    <div class="input-group mb-3">
-        //        <input type="text" placeholder="MAIL" id="mail" class="form-control" />
-        //    </div>
-
-        //    <div class="input-group mb-3">
-        //        <input type="text" placeholder="CONTACT" id="contact" class="form-control" />
-        //    </div>
-        //`);
+        $('#contact-container').html(`
+            <div class="input-group mb-3">
+                <input type="text" placeholder="CONTACT" id="contact" class="form-control" />
+            </div>
+        `);
 
         return;
     }
@@ -81,10 +87,19 @@ $('#signin-signup-toggler').on('click', () => {
     $('#signin-signup-toggler').text("Créer un nouveau compte");
     $('#suppliers-form-button').text('Se connecter');
 
-    /*$('#nif-and-stat-container').html(``);*/
+    $('#mail-container').html(``);
+    $('#contact-container').html(``);
 });
 
 $('#suppliers-form').on('submit', async (e) => {
+
+    nifInput = $('#nif');
+    stat = $('#stat');
+    name = $('#name');
+    mail = $('#mail');
+    contact = $('#contact');
+    cin = $('#cin');
+
     e.preventDefault();
 
     let payload = {};
@@ -96,14 +111,9 @@ $('#suppliers-form').on('submit', async (e) => {
     }
 
     if ($('#without-nif-and-stat').prop('checked') === true) {
+
         if (cin.val() === '') {
             alert('Le N° CIN est obligatoire si sans NIF et STAT!');
-
-            return;
-        }
-
-        if (mail.val() === '') {
-            alert('Le MAIL est obligatoire!');
 
             return;
         }
@@ -133,14 +143,8 @@ $('#suppliers-form').on('submit', async (e) => {
             return;
         }
 
-        if (stat.val().length !== 18) {
-            alert('Le STAT doit être exactement de 18 caractères de longueur!');
-
-            return;
-        }
-
-        if (mail.val() === '') {
-            alert('Le MAIL est obligatoire!');
+        if (stat.val().length !== 17) {
+            alert('Le STAT doit être exactement de 17 caractères de longueur!');
 
             return;
         }
@@ -163,21 +167,32 @@ $('#suppliers-form').on('submit', async (e) => {
     }
 
     if (isASignupOperation) {
-        try {
+        try
+        {
             loader.removeClass('display-none');
+
+            //if (mail.val() === '') {
+            //    alert('Le MAIL est obligatoire!');
+
+            //    return;
+            //}
 
             await axios.post(apiUrl + `api/suppliers/register`, {
                 ...payload
             });
     
             window.location.href = webUrl + `suppliers/${projectId}`;
+
         } catch (error) {
             alert('Compte déjà existant!');
         } finally {
             loader.addClass('display-none');
         }
-    } else {
-        try {
+    }
+    else
+    {
+        try
+        {
             loader.removeClass('display-none');
     
             await axios.post(apiUrl + `api/suppliers/auth`, {

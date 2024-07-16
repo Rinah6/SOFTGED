@@ -54,4 +54,8 @@
         <Content Remove="wwwroot\**" />
         <Content Include="wwwroot\**" Watch="false" />
     </ItemGroup>
+
+    <ItemGroup>
+      <None Include="efpt.config.json.user" />
+    </ItemGroup>
 </Project>

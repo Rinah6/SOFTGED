@@ -32,12 +32,16 @@ namespace API.Repositories
             await conn.OpenAsync();
 
             using var cmd = new SqlCommand(@"
-                INSERT INTO Projects (Id, Name, Storage)
-                VALUES (NEWID(), @name, @storage)
+                INSERT INTO Projects (Id, Name, Storage, ServerName, Login, Password, DataBaseName)
+                VALUES (NEWID(), @name, @storage, @serverName, @login, @password, @dataBaseName)
             ", conn);
 
             cmd.Parameters.AddWithValue("@name", projectToAdd.Name);
             cmd.Parameters.AddWithValue("@storage", projectToAdd.Storage);
+            cmd.Parameters.AddWithValue("@serverName", projectToAdd.ServerName);
+            cmd.Parameters.AddWithValue("@login", projectToAdd.Login);
+            cmd.Parameters.AddWithValue("@password", projectToAdd.Password);
+            cmd.Parameters.AddWithValue("@dataBaseName", projectToAdd.DataBaseName);
 
             await cmd.ExecuteNonQueryAsync();
         }
@@ -54,7 +58,7 @@ namespace API.Repositories
 
         public async Task<List<Model.Project>> GetAll()
         {
-            var query = _db.Projects.AsQueryable().Where(x => x.DeletionDate == null);
+            var query = _db.Projects.Where(x => x.DeletionDate == null);
 
             return await query.ToListAsync();
         }

@@ -15,6 +15,12 @@ namespace Web.Controllers
             return View();
         }
 
+        [HttpGet("soas")]
+        public IActionResult SoasManagement()
+        {
+            return View();
+        }
+
         [HttpGet("users")]
         public IActionResult UsersManagement()
         {

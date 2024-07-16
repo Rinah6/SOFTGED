@@ -42,7 +42,7 @@ namespace API.Repositories
             return null;
         }
 
-        public async Task<Guid?> GetSupplieIdWithoutNIFAndSTAT(string name, Guid projectId, string cin)
+        public async Task<Guid?> GetSupplieIdWithoutNIFAndSTAT(string name, Guid projectId, string? cin)
         {
             using var conn = new SqlConnection(_connectionString);
             await conn.OpenAsync();
@@ -50,9 +50,8 @@ namespace API.Repositories
             using var cmd = new SqlCommand(@"
                 SELECT Id 
                 FROM Suppliers
-                WHERE Name = @name
+                WHERE (Name = @name OR CIN = @cin)
                 AND ProjectId = @projectId
-                AND CIN = @cin
                 AND DeletionDate IS NULL;
             ", conn);
 

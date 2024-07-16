@@ -8,6 +8,8 @@ namespace API.Context
         public SoftGED_DBContext(DbContextOptions<SoftGED_DBContext> options) : base(options) { }
 
         public DbSet<Project> Projects { get; set; }
+        //public DbSet<Soa> Soas { get; set; }
+        public virtual DbSet<Soa> Soas { get; set; }
         public DbSet<User> Users { get; set; }
         public DbSet<Document> Documents { get; set; }
         public DbSet<Attachement> Attachements { get; set; }
@@ -21,6 +23,12 @@ namespace API.Context
             modelBuilder.Entity<DynamicField>().Property(x => x.Id).HasDefaultValueSql("NEWID()");
             modelBuilder.Entity<DynamicFieldItem>().Property(x => x.Id).HasDefaultValueSql("NEWID()");
             modelBuilder.Entity<Attachement>().Property(x => x.Id).HasDefaultValueSql("NEWID()");
+
+            modelBuilder.Entity<Soa>(entity =>
+            {
+                entity.Property(e => e.CreationDate).HasColumnType("datetime");
+                entity.Property(e => e.DeletionDate).HasColumnType("datetime");
+            });
         }
     }
 }

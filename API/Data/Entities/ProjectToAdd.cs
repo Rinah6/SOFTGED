@@ -4,9 +4,10 @@
     {
         public required string Name { get; set; }
         public required string Storage { get; set; }
-        public string ServerName { get; set; }
-        public string Login { get; set; }
-        public string Password { get; set; }
-        public string DataBaseName { get; set; }
+        public string? ServerName { get; set; }
+        public string? Login { get; set; }
+        public string? Password { get; set; }
+        public string? DataBaseName { get; set; }
+        public string? SOA { get; set; }
     }
 }

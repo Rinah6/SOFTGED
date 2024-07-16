@@ -4,6 +4,7 @@ using API.Dto;
 using API.Data.Entities;
 using API.Repositories;
 using Microsoft.AspNetCore.Authorization;
+using API.Context;
 
 namespace API.Controllers
 {
@@ -12,12 +13,17 @@ namespace API.Controllers
     [Authorize]
     public class ProjectController : ControllerBase
     {
+        private readonly string _connectionString;
+        private readonly SoftGED_DBContext _db;
+
         private readonly IMapper _mapper;
         private readonly ProjectRepository _projectRepository;
         private readonly ProjectDocumentsReceiverRepository _projectDocumentsReceiverRepository;
-
-        public ProjectController(IMapper mapper, ProjectRepository projectRepository, ProjectDocumentsReceiverRepository projectDocumentsReceiverRepository)
+        
+        public ProjectController(SoftGED_DBContext db, IConfiguration configuration, IMapper mapper, ProjectRepository projectRepository, ProjectDocumentsReceiverRepository projectDocumentsReceiverRepository)
         {
+            _db = db;
+            _connectionString = configuration.GetConnectionString("SoftGED_DBContext")!;
             _mapper = mapper;
             _projectRepository = projectRepository;
             _projectDocumentsReceiverRepository = projectDocumentsReceiverRepository;
@@ -30,7 +36,7 @@ namespace API.Controllers
 
             var projects = await _projectRepository.GetAll();
 
-            return Ok(_mapper.Map<List<ProjectDto>>(projects));
+            return Ok(projects);
         }
 
         [HttpGet("{id}")]
@@ -42,7 +48,12 @@ namespace API.Controllers
         [HttpPost("")]
         public async Task<ActionResult> ProjectToAdd(ProjectToAdd projectToAdd)
         {
-            await _projectRepository.AddNewProject(projectToAdd);
+            if (_db.Projects.Any(project => project.Name == projectToAdd.Name && project.DeletionDate == null))
+                return BadRequest("Le projet existe déjà!");
+
+            int soaID = _db.Soas.FirstOrDefault(a => a.Name == projectToAdd.SOA).Id;
+
+            await _projectRepository.AddNewProject(projectToAdd, soaID);
 
             return Ok();
         }

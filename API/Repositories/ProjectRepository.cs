@@ -26,22 +26,24 @@ namespace API.Repositories
             return _db.SaveChanges() > 0;
         }
 
-        public async Task AddNewProject(ProjectToAdd projectToAdd)
+        public async Task AddNewProject(ProjectToAdd projectToAdd, int SOAID)
         {
             using var conn = new SqlConnection(_connectionString);
             await conn.OpenAsync();
 
             using var cmd = new SqlCommand(@"
-                INSERT INTO Projects (Id, Name, Storage, ServerName, Login, Password, DataBaseName)
-                VALUES (NEWID(), @name, @storage, @serverName, @login, @password, @dataBaseName)
+                INSERT INTO Projects (Id, Name, Storage, ServerName, Login, Password, DataBaseName, SoaId, SoaName)
+                VALUES (NEWID(), @name, @storage, @serverName, @login, @password, @dataBaseName, @SoaId, @SoaName)
             ", conn);
 
             cmd.Parameters.AddWithValue("@name", projectToAdd.Name);
             cmd.Parameters.AddWithValue("@storage", projectToAdd.Storage);
             cmd.Parameters.AddWithValue("@serverName", projectToAdd.ServerName);
-            cmd.Parameters.AddWithValue("@login", projectToAdd.Login);
-            cmd.Parameters.AddWithValue("@password", projectToAdd.Password);
+            cmd.Parameters.AddWithValue("@login", projectToAdd.Login != null ? projectToAdd.Login : "");
+            cmd.Parameters.AddWithValue("@password", projectToAdd.Password != null ? projectToAdd.Password : "");
             cmd.Parameters.AddWithValue("@dataBaseName", projectToAdd.DataBaseName);
+            cmd.Parameters.AddWithValue("@SoaId", SOAID);
+            cmd.Parameters.AddWithValue("@SoaName", projectToAdd.SOA);
 
             await cmd.ExecuteNonQueryAsync();
         }

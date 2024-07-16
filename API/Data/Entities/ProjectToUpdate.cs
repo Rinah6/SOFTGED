@@ -3,10 +3,10 @@
     public class ProjectToUpdate
     {
         public required string Name { get; set; }
-        public string ServerName { get; set; }
-        public string Login { get; set; }
-        public string Password { get; set; }
-        public string DataBaseName { get; set; }
+        public string? ServerName { get; set; }
+        public string? Login { get; set; }
+        public string? Password { get; set; }
+        public string? DataBaseName { get; set; }
         public bool HasAccessToInternalUsersHandling { get; set; }
         public bool HasAccessToSuppliersHandling { get; set; }
         public bool HasAccessToProcessingCircuitsHandling { get; set; }

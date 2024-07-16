@@ -34,6 +34,7 @@ async function getProjects() {
     $.each(data, function (_, v) {
         code += `
             <tr data-type="project-cell">
+                <td>${v.soaname === undefined ? "" : v.soaname}</td>
                 <td>${v.id}</td>
                 <td>${v.name === undefined ? "" : v.name}</td>
                 <td>${v.storage === undefined ? "" : v.storage}</td>
@@ -127,7 +128,7 @@ $(document).ready(async () => {
         await getSOAS();
 
         $('#authentication-modes').select2({
-            dropdownParent: $('#add-tom-pro-db-connection-modal'),
+            dropdownParent: $('#create-project-modal'),
         })
 
     } catch (error) {
@@ -140,9 +141,91 @@ $(document).ready(async () => {
 $('#server-name').on('input', () => {
     $('#connection-btn').show();
 
-    $('#save-db-connection-container').find('#save-db-connection-btn').remove();
+    $('#databases-container').html('');
+});
+
+$('#authentication-modes').on('change', (e) => {
+    $('#connection-btn').show();
 
     $('#databases-container').html('');
+
+    const value = Number($(e.currentTarget).val());
+
+    if (value === 0) {
+        $('#sa-password').html('');
+
+        return;
+    }
+
+    $('#sa-password').html(`
+        <div class="form-group">
+            <label for="login">Connexion: </label>
+
+            <input type="text" id="login" />
+        </div>
+
+        <div class="form-group">
+            <label for="password">Mot de passe: </label>
+
+            <input type="password" id="password" />
+            <i class="fa fa-eye fa-lg" id="toggle-password" style="margin: 10px; cursor: pointer;"></i>
+        </div>
+    `);
+
+    $('#sa-password').find('#toggle-password').on('click', () => {
+        const password = $('#password');
+
+        const type = password.attr('type') === 'password' ? 'text' : 'password';
+
+        password.attr('type', type);
+
+        $(e.currentTarget).toggleClass('bi-eye');
+    });
+});
+
+$('#connection-btn').on('click', async (e) => {
+    try {
+        loader.removeClass('display-none');
+
+        const login = $('#sa-password').find('#login').val();
+        const password = $('#sa-password').find('#password').val();
+
+        const { data: databases } = await axios.post(apiUrl + `api/tom_pro_db_connections/databases`, {
+            serverName: $('#serveur').val(),
+            login: !login ? undefined : login,
+            password: !password ? undefined : password
+        }, {
+            withCredentials: true
+        });
+
+        $('#databases-container').html(`
+            <div>
+                <label for="authentication-modes">Bases de données: </label>
+
+                <select id="databases"></select>
+            </div>
+        `);
+
+        let tmp = '';
+
+        for (let i = 0; i < databases.length; i += 1) {
+            tmp += `
+                <option value="${databases[i].id}">${databases[i].name}</option>
+            `;
+        }
+
+        $('#databases-container').find('#databases').html(tmp);
+
+        $('#databases-container').find('#databases').select2({
+            dropdownParent: $('#create-project-modal'),
+        });
+    } catch (error) {
+        console.log(error.message);
+
+        alert(`Échec de la connexion à l'instance!`);
+    } finally {
+        loader.addClass('display-none');
+    }
 });
 
 $('#wsearch').on('keyup', function () {
@@ -156,12 +239,28 @@ $('#wsearch').on('keyup', function () {
 });
 
 $(document).on('click', '[create-project]', async() => {
+    loader.removeClass('display-none');
+
     let name = $('#name').val();
-    let soa = $('#soa').val();
     let storage = $("#storage").val();
-    let serveur = $("#serveur").val();
-    let login = $("#login").val();
-    let password = $("#password").val();
+    let servername = $("#serveur").val();
+
+    const login = $('#sa-password').find('#login').val();
+    const password = $('#sa-password').find('#password').val();
+
+    const databaseName = $('#databases-container').find('#databases').select2('data').map((database) => {
+        return {
+            databaseName: database.text,
+        };
+    });
+    let dbasename = databaseName[0].databaseName;
+
+    const soaName = $('#soa-container').find('#soas').select2('data').map((soas) => {
+        return {
+            soaName: soas.text,
+        };
+    });
+    let soa = soaName[0].soaName;
 
     if (name == '') {
         Toast.fire({
@@ -179,7 +278,7 @@ $(document).on('click', '[create-project]', async() => {
 
         return;
     }
-    if (serveur == '') {
+    if (servername == '') {
         Toast.fire({
             icon: 'error',
             title: "Le serveur est obligatoire."
@@ -187,18 +286,10 @@ $(document).on('click', '[create-project]', async() => {
 
         return;
     }
-    if (login == '') {
+    if (dbasename == '') {
         Toast.fire({
             icon: 'error',
-            title: "Le login (sa) est obligatoire."
-        });
-
-        return;
-    }
-    if (password == '') {
-        Toast.fire({
-            icon: 'error',
-            title: "Le mot de passe (sa) est obligatoire."
+            title: "La base de données est obligatoire."
         });
 
         return;
@@ -211,9 +302,10 @@ $(document).on('click', '[create-project]', async() => {
             name,
             storage,
             soa,
-            password,
-            login,
-            serveur,
+            login: !login ? undefined : login,
+            password: !password ? undefined : password,
+            servername,
+            databaseName: dbasename
         }, {
             withCredentials: true
         });
@@ -225,7 +317,7 @@ $(document).on('click', '[create-project]', async() => {
 
         window.location.reload();
     } catch (error) {
-        alert(error);
+        alert(error.response.data);
     } finally {
         loader.addClass('display-none');
     }

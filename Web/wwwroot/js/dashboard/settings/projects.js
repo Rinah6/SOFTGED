@@ -62,7 +62,6 @@ async function getProjectDetails(projectId) {
     $("#current-storage").val(data.storage);
     $("#current-serveur").val(data.servernaame);
     $("#current-login").val(data.login);
-    $("#current-login").val(data.login);
     $("#current-password").val(data.password);
     $('#has-access-to-internal-users-handling').prop('checked', data.hasAccessToInternalUsersHandling);
     $('#has-access-to-suppliers-handling').prop('checked', data.hasAccessToSuppliersHandling);

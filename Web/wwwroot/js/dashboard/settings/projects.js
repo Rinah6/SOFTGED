@@ -29,17 +29,19 @@ async function getProjects() {
         withCredentials: true
     });
 
+    console.log(data)
+
     let code = ``;
 
     $.each(data, function (_, v) {
         code += `
             <tr data-type="project-cell">
-                <td>${v.soaname === undefined ? "" : v.soaname}</td>
+                <td>${v.soaName === undefined ? "" : v.soaName}</td>
                 <td>${v.id}</td>
                 <td>${v.name === undefined ? "" : v.name}</td>
                 <td>${v.storage === undefined ? "" : v.storage}</td>
-                <td>${v.servername === undefined ? "" : v.servername}</td>
-                <td>${v.databasename === undefined ? "" : v.databasename}</td>
+                <td>${v.serverName === undefined ? "" : v.serverName}</td>
+                <td>${v.dataBaseName === undefined ? "" : v.dataBaseName}</td>
                 <td><button class="btn btn-primary" show-update-project-modal="${v.id}">Modifer</button></td>
                 <td><button class="btn btn-danger" delete-project="${v.id}">Supprimer</button></td>
             </tr>
@@ -303,8 +305,8 @@ $(document).on('click', '[create-project]', async() => {
             soa,
             login: !login ? undefined : login,
             password: !password ? undefined : password,
-            servername,
-            databaseName: dbasename
+            serverName,
+            dataBaseName: dbasename
         }, {
             withCredentials: true
         });

@@ -42,8 +42,8 @@ function showListRole(data) {
     $(`#roles`).html(code);
 }
 
-async function getProjects() {
-    const { data: projects } = await axios.get(apiUrl + `api/projects`, {
+async function getSOAS() {
+    const { data: projects } = await axios.get(apiUrl + `api/soas`, {
         withCredentials: true
     });
 
@@ -57,7 +57,83 @@ async function getProjects() {
         `;
     }
 
+    $('#soas').html(content).select2({
+        dropdownParent: $('#user-modal')
+    });
+}
+
+$(document).on('change', '#soas', (e) => {
+    if ($(e.currentTarget).val().length === 0) {
+        $('#projects-container').html('');
+        $('#projectsA-container').html('');
+    }
+    else {
+        getProjects();
+    }
+});
+
+$(document).on('change', '#projects', (e) => {
+    if ($(e.currentTarget).val().length === 0) {
+        $('#site-container').html('');
+    }
+    else {
+        getSites();
+    }
+});
+
+async function getSites() {
+    const projectId = $('#projects').val();
+
+    const { data: projects } = await axios.get(apiUrl + `api/projects/site?projectsId=${projectId}`, {
+        withCredentials: true
+    });
+
+    let content = `
+    `;
+    for (let i = 0; i < projects.length; i += 1) {
+        content += `
+            <option value="${projects[i].code}">${projects[i].libelle}</option>
+        `;
+    }
+
+    $('#sites').html(content).select2({
+        dropdownParent: $('#user-modal')
+    });
+}
+
+async function getProjects() {
+    const soaName = $('#soa-container').find('#soas').select2('data').map((soas) => {
+        return {
+            soaName: soas.text,
+        };
+    });
+    let soa = soaName[0].soaName;
+
+    const { data: projects } = await axios.get(apiUrl + `api/projects/soa?soa=${soa}`, {
+        withCredentials: true
+    });
+
+    let content = `
+        <option value="" selected></option>
+    `;
+    for (let i = 0; i < projects.length; i += 1) {
+        content += `
+            <option value="${projects[i].id}">${projects[i].name}</option>
+        `;
+    }
+
+    let contentA = ``;
+    for (let i = 0; i < projects.length; i += 1) {
+        contentA += `
+            <option value="${projects[i].id}">${projects[i].name}</option>
+        `;
+    }
+
     $('#projects').html(content).select2({
+        dropdownParent: $('#user-modal')
+    });
+
+    $('#projectsA').html(contentA).select2({
         dropdownParent: $('#user-modal')
     });
 }
@@ -134,7 +210,9 @@ $(document).ready(async () => {
 
         await getUsers();
 
-        await getProjects();
+        await getSOAS();
+
+        //await getProjects();
 
         await getStatistique();
     } catch (error) {
@@ -160,6 +238,10 @@ $(`[new-user-modal]`).on('click', async (e) => {
     $("#first-name").val('');
     $('#email').val('');
     $('#password').val('');
+    $('#soas').val('');
+    $('#projects').val('');
+    $('#projectsA').val('');
+    $('#sites').val('');
 
     if (connectedUserRole === 0 || connectedUserRole === 1) {
         $('#modal-title').text(`Insertion d'un nouvel utilisateur`);
@@ -170,6 +252,7 @@ $(`[new-user-modal]`).on('click', async (e) => {
             $('#roles-container').hide();
         } else {
             $('#projects-container').hide();
+            $('#projectsA-container').hide();
 
             $('#roles').val('-1');
         }
@@ -180,6 +263,7 @@ $(`[new-user-modal]`).on('click', async (e) => {
             showListRole(roles);
 
             $(`[data-id="projects-container]`).remove();
+            $(`[data-id="projectsA-container]`).remove();
         }
 
         creationState = true;
@@ -208,6 +292,7 @@ $(document).on('click', '[user-update]', async (e) => {
             $('#roles-container').remove();
         } else {
             $('#projects-container').hide();
+            $('#projectsA-container').hide();
         }
 
         creationState = false;
@@ -225,12 +310,15 @@ $('#user-modal').find('[data-action="submit"]').on('click', async () => {
     const password = $('#password').val();
     const role = $('#roles').val();
     const projectId = $('#projects').val();
+    const soa = $('#soas').val();
+    //const projectsA = $('#projectsA').val();
+    //const site = $('#sites').val();
 
     if (creationState) {
-        if (username === '' || password === '') {
+        if (username === '' || password === '' || soa === '') {
             Toast.fire({
                 icon: 'error',
-                title: "Le nom d'utilisateur et le mot de passe sont obligatoires!"
+                title: "Le nom d'utilisateur, le mot de passe et les sites sont obligatoires!"
             });
 
             return;
@@ -238,6 +326,20 @@ $('#user-modal').find('[data-action="submit"]').on('click', async () => {
 
         try {
             loader.removeClass('display-none');
+
+            const site = $('#site-container').find('#sites').select2('data').map((site) => {
+                return {
+                    siteId: Number(site.id),
+                    siteName: site.text,
+                };
+            });
+
+            const projectsA = $('#projectsA-container').find('#projectsA').select2('data').map((projectsA) => {
+                return {
+                    projectsAId: projectsA.id,
+                    projectsAName: projectsA.text,
+                };
+            });
 
             await axios.post(apiUrl + `api/users/register`, {
                 username,
@@ -247,7 +349,9 @@ $('#user-modal').find('[data-action="submit"]').on('click', async () => {
                 password,
                 role: connectedUserRole === 0 ? 1 : !role ? 3 : Number(role),
                 projectId: connectedUserRole === 0 ? projectId : undefined,
-                projects
+                projects,
+                site: site,
+                projectsA: projectsA
             }, {
                 withCredentials: true
             });
@@ -319,4 +423,5 @@ $(document).on('click', '[user-delete]', async (e) => {
 
 $('[data-bs-dismiss="modal"]').on('click', () => {
     $('#projects-container').val('').trigger('change');
+    $('#projectsA-container').val('').trigger('change');
 });

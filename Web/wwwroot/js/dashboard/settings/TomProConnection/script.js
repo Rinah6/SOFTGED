@@ -113,17 +113,6 @@ $('#connection-btn').on('click', async (e) => {
     }
 });
 
-$(document).on('change', '#databases', (e) => {
-    if ($(e.currentTarget).val().length === 0) {
-        $('#save-db-connection-container').html('');
-
-        return;
-    }
-
-    $('#save-db-connection-container').html(`
-        <button class="btn btn-primary" id="save-db-connection-btn">Enregistrer</button>
-    `);
-});
 
 $(document).on('click', '#save-db-connection-btn', async () => {
     try {

@@ -5,6 +5,10 @@ using API.Data.Entities;
 using API.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using API.Context;
+using System.Runtime.CompilerServices;
+using Microsoft.EntityFrameworkCore;
+using System.Data.SqlClient;
+using System.ComponentModel.DataAnnotations;
 
 namespace API.Controllers
 {
@@ -19,7 +23,7 @@ namespace API.Controllers
         private readonly IMapper _mapper;
         private readonly ProjectRepository _projectRepository;
         private readonly ProjectDocumentsReceiverRepository _projectDocumentsReceiverRepository;
-        
+
         public ProjectController(SoftGED_DBContext db, IConfiguration configuration, IMapper mapper, ProjectRepository projectRepository, ProjectDocumentsReceiverRepository projectDocumentsReceiverRepository)
         {
             _db = db;
@@ -39,6 +43,59 @@ namespace API.Controllers
             return Ok(projects);
         }
 
+        [HttpGet("/api/projects/soa")]
+        public async Task<ActionResult> GetPS(string soa)
+        {
+            var currentUserId = Guid.Parse(HttpContext.User.Claims.FirstOrDefault(x => x.Type == "Id")!.Value);
+
+            var soas = await _db.Soas.FirstOrDefaultAsync(project => project.Name == soa && project.DeletionDate == null);
+
+            var projects = await _projectRepository.GetAllBySoaId(soas.Id);
+
+            return Ok(projects);
+        }
+
+        [HttpGet("/api/projects/site")]
+        public async Task<ActionResult> GetPSite(Guid projectsId)
+        {
+            var currentUserId = Guid.Parse(HttpContext.User.Claims.FirstOrDefault(x => x.Type == "Id")!.Value);
+
+            var isP = _db.Projects.FirstOrDefault(a => a.Id == projectsId);
+
+            var connectionString = isP.Login == null || isP.Password == null ?
+               $"Server={isP.ServerName}; Database={isP.DataBaseName}; Persist Security Info=False;Trusted_Connection=True; "
+               : $"Server={isP.ServerName}; User Id={isP.Login}; Password={isP.Password}; Database={isP.DataBaseName}; TrustServerCertificate=true; ";
+
+            using var conn = new SqlConnection(connectionString);
+            await conn.OpenAsync();
+
+            using var cmd = new SqlCommand(@"
+                SELECT CODE, LIBELLE
+                FROM RSITE
+            ", conn);
+
+            using var reader = await cmd.ExecuteReaderAsync();
+
+            var projects = new List<SITE>();
+
+            while (await reader.ReadAsync())
+            {
+                projects.Add(new SITE
+                {
+                    CODE = reader["CODE"].ToString()!,
+                    LIBELLE = reader["LIBELLE"].ToString()!
+                });
+            }
+
+            return Ok(projects);
+        }
+
+        public class SITE
+        {
+            public string? CODE { get; set; }
+            public string? LIBELLE { get; set; }
+        }
+
         [HttpGet("{id}")]
         public async Task<ActionResult> Get(Guid id)
         {
@@ -51,7 +108,7 @@ namespace API.Controllers
             if (_db.Projects.Any(project => project.Name == projectToAdd.Name && project.DeletionDate == null))
                 return BadRequest("Le projet existe déjà!");
 
-            int soaID = _db.Soas.FirstOrDefault(a => a.Name == projectToAdd.SOA).Id;
+            int soaID = _db.Soas.FirstOrDefault(a => a.Name == projectToAdd.SOA && a.DeletionDate == null).Id;
 
             await _projectRepository.AddNewProject(projectToAdd, soaID);
 

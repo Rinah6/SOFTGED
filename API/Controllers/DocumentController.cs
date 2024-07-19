@@ -98,6 +98,7 @@ namespace API.Controllers
         [HttpGet("total_number_by_status")]
         public async Task<ActionResult> GetNumberOfDocumentsByStatus()
         {
+            
             var currentUserId = Guid.Parse(HttpContext.User.Claims.FirstOrDefault(x => x.Type == "Id")!.Value);
             var currentUserRole = HttpContext.User.Claims.FirstOrDefault(x => x.Type == "role")!.Value;
 

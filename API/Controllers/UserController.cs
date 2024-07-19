@@ -3,6 +3,7 @@ using API.Data;
 using Microsoft.AspNetCore.Authorization;
 using API.Repositories;
 using API.Data.Entities;
+using API.Context;
 
 namespace API.Controllers
 {
@@ -14,9 +15,13 @@ namespace API.Controllers
         private readonly UserRepository _userRepository;
         private readonly ProjectRepository _projectRepository;
         private readonly RoleRepository _roleRepository;
+        private readonly string _connectionString;
+        private readonly SoftGED_DBContext _db;
 
-        public UserController(UserRepository userRepository, ProjectRepository projectRepository, RoleRepository roleRepository)
+        public UserController(SoftGED_DBContext db, IConfiguration configuration, UserRepository userRepository, ProjectRepository projectRepository, RoleRepository roleRepository)
         {
+            _db = db;
+            _connectionString = configuration.GetConnectionString("SoftGED_DBContext")!;
             _userRepository = userRepository;
             _projectRepository = projectRepository;
             _roleRepository = roleRepository;
@@ -133,6 +138,13 @@ namespace API.Controllers
             }
 
             await _userRepository.Delete(Id, currentUserId);
+
+            var isUsersProjectsSites = _db.UsersProjectsSites.FirstOrDefault(a => a.UserId == currentUserId);
+            if (isUsersProjectsSites != null)
+            {
+                _db.Remove(isUsersProjectsSites);
+                _db.SaveChanges();
+            }
 
             return Ok();
         }

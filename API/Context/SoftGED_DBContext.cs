@@ -13,6 +13,7 @@ namespace API.Context
         public DbSet<User> Users { get; set; }
         public DbSet<Document> Documents { get; set; }
         public DbSet<Attachement> Attachements { get; set; }
+        public virtual DbSet<UsersProjectsSites> UsersProjectsSites { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

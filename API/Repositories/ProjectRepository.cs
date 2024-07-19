@@ -65,6 +65,13 @@ namespace API.Repositories
             return await query.ToListAsync();
         }
 
+        public async Task<List<Model.Project>> GetAllBySoaId(int id)
+        {
+            var query = _db.Projects.Where(x => x.DeletionDate == null && x.SoaId == id);
+
+            return await query.ToListAsync();
+        }
+
         public async Task Update(Guid id, ProjectToUpdate projectToUpdate)
         {
             Model.Project? project = await Get(id);
